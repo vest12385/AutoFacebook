@@ -28,6 +28,7 @@ namespace AutoFacebook
         private SQLiteConnection m_dbConnection;
         private SQLiteCommand command;
         private string CurrentPath = System.Environment.CurrentDirectory;
+        private bool haveFriend = false;
         
         private Process _browserProcess;
         private IE _browser;
@@ -73,13 +74,16 @@ namespace AutoFacebook
             DirectoryInfo DB2 = new DirectoryInfo(CurrentPath + @"\FB\friendFriend\");
             DirectoryInfo DB3 = new DirectoryInfo(CurrentPath + @"\FB\post\");
             FileInfo FI1 = new FileInfo(CurrentPath + @"\FB\Finish.txt");
-            if (!DB1.Exists || !DB2.Exists || !DB3.Exists || !FI1.Exists)
+            FileInfo FI2 = new FileInfo(CurrentPath + @"\FB\friend\Backup.txt");
+            if (!DB1.Exists || !DB2.Exists || !DB3.Exists || !FI1.Exists || !FI2.Exists )
             {
                 DB1.Create();
                 DB2.Create();
                 DB3.Create();
                 FileStream FS1 = FI1.Create();
+                FileStream FS2 = FI2.Create();
                 FS1.Close();
+                FS2.Close();
             }
             //設定等待網頁時間不超過10秒
             Settings.WaitForCompleteTimeOut = 10;
@@ -87,15 +91,20 @@ namespace AutoFacebook
             //初始化控制項
             //cboSearchType.SelectedIndex = 0;
             //lblCurrentColor.ForeColor = Color.FromName(Settings.HighLightColor);
+            string DataBasePath = CurrentPath + @"\FB\FaceBookDatabase.sqlite";
             if ( !SQLiteExist() )
             {
-                string DataBasePath = CurrentPath + @"\FB\FaceBookDatabase.sqlite";
                 SQLiteConnection.CreateFile(DataBasePath);
                 m_dbConnection = new SQLiteConnection("Data Source= " + DataBasePath +"; Version = 3;");
                 m_dbConnection.Open();
                 command = m_dbConnection.CreateCommand();
                 command.CommandText = "CREATE TABLE post (name TEXT, time TEXT, content TEXT)";
                 command.ExecuteNonQuery();
+            }
+            else
+            {
+                m_dbConnection = new SQLiteConnection ("Data Source= " + DataBasePath + "; Version = 3;");
+                m_dbConnection.Open ();
             }
             #region 產生Conosle
             AllocConsole();
@@ -111,14 +120,22 @@ namespace AutoFacebook
         }
         private void Form1_Load(object sender, EventArgs e)
         {
+            StreamReader sr1 = new StreamReader(CurrentPath + @"\FB\friend\Backup.txt");
             StreamReader sr = new StreamReader(CurrentPath + @"\FB\Finish.txt");
             sr.BaseStream.Seek(0, SeekOrigin.Begin);
             string OneUser = "";
+            string OneFriend = "";
             while ( ( OneUser = sr.ReadLine() ) != null)
             {
                 UsersFinish.Add(OneUser);
             }
+            while ((OneFriend = sr1.ReadLine()) != null)
+            {
+                Users.Add(OneFriend);
+                haveFriend = true;
+            }
             sr.Close();
+            sr1.Close();
         }
         static void Console_CancelKeyPress(object sender,
         ConsoleCancelEventArgs e)
@@ -194,6 +211,7 @@ namespace AutoFacebook
                 state.Text += " Fetch Friend Start \r\n";
                 var PostName = Browser.Div(Find.ByClass("_6-e")).Element(Find.ByClass("_6-f"));
                 StreamWriter sw1 = new StreamWriter(CurrentPath + @"\FB\friend\" + PostName + ".txt");
+                StreamWriter sw2 = new StreamWriter(CurrentPath + @"\FB\friend\Backup.txt");
                 Browser.GoTo("https://www.facebook.com/" + PostName + "/friends");
 
                 scrollWindows();
@@ -205,6 +223,7 @@ namespace AutoFacebook
                     {
                         var Div = li.Div(Find.ByClass("fsl fwb fcb"));
                         sw1.WriteLine(i + ".Name:" + Div.Text + " \tLink:" + Div.Link(Find.Any).Url);
+                        sw2.WriteLine(Div.Link(Find.Any).Url);
                         Console.WriteLine(i + "." + Div.Link(Find.Any).Url);
                         Users.Add(Div.Link(Find.Any).Url);
                         i++;
@@ -320,10 +339,10 @@ namespace AutoFacebook
 
         private void scrollWindows()
         {
-            for (int i = 0; i < 25; i++)
+            for (int i = 0; i < 30; i++)
             {
                 Browser.Eval("window.scrollBy(0, 10000)");
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
             }
         }
 
@@ -352,7 +371,10 @@ namespace AutoFacebook
             
             try
             {
-                GetFriend();
+                if (!haveFriend)
+                {
+                    GetFriend();
+                }
                 foreach (string eachFriend in Users) 
                 {
                     foreach (string show in UsersFinish)
