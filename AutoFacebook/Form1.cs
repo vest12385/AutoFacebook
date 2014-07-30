@@ -75,15 +75,18 @@ namespace AutoFacebook
             DirectoryInfo DB3 = new DirectoryInfo(CurrentPath + @"\FB\post\");
             FileInfo FI1 = new FileInfo(CurrentPath + @"\FB\Finish.txt");
             FileInfo FI2 = new FileInfo(CurrentPath + @"\FB\friend\Backup.txt");
-            if (!DB1.Exists || !DB2.Exists || !DB3.Exists || !FI1.Exists || !FI2.Exists )
+            FileInfo FI3 = new FileInfo(CurrentPath + @"\FB\Finish_Backup.txt");
+            if (!DB1.Exists || !DB2.Exists || !DB3.Exists || !FI1.Exists || !FI2.Exists || !FI3.Exists)
             {
                 DB1.Create();
                 DB2.Create();
                 DB3.Create();
                 FileStream FS1 = FI1.Create();
                 FileStream FS2 = FI2.Create();
+                FileStream FS3 = FI3.Create();
                 FS1.Close();
                 FS2.Close();
+                FS3.Close();
             }
             //設定等待網頁時間不超過10秒
             Settings.WaitForCompleteTimeOut = 10;
@@ -121,7 +124,7 @@ namespace AutoFacebook
         private void Form1_Load(object sender, EventArgs e)
         {
             StreamReader sr1 = new StreamReader(CurrentPath + @"\FB\friend\Backup.txt");
-            StreamReader sr = new StreamReader(CurrentPath + @"\FB\Finish.txt");
+            StreamReader sr = new StreamReader(CurrentPath + @"\FB\Finish_Backup.txt");
             sr.BaseStream.Seek(0, SeekOrigin.Begin);
             string OneUser = "";
             string OneFriend = "";
@@ -234,21 +237,26 @@ namespace AutoFacebook
                     Browser.GoTo("https://www.facebook.com/" + PostName + "/friends");
                 }
                 sw1.Close();
+                sw2.Close();
                 state.Text += " Fetch Friend Success \r\n";
                 state.Text += " ---------------------------------------- \r\n";
             }
             catch (WatiN.Core.Exceptions.RunScriptException ex)
             {
-                state.Text += "Some Script Wrong, Reload website\r\n";
+                state.Text += "Some Script Wrong, sleep 5 second and Reload website\r\n";
                 state.Text += " ---------------------------------------- \r\n";
-                Console.WriteLine("Some Script Wrong, Reload website");
+                Console.WriteLine("Some Script Wrong, sleep 5 second and Reload website");
+                textBoxScroll();
+                Thread.Sleep(5000);
                 GetFriend();
             }
             catch (WatiN.Core.Exceptions.TimeoutException ex)
             {
-                state.Text += "Timeout Try Again";
+                state.Text += "Timeout, sleep 5 second and Try Again\r\n";
                 state.Text += " ---------------------------------------- \r\n";
-                Console.WriteLine("Timeout Try Again");
+                Console.WriteLine("Timeout, sleep 5 second and Try Again");
+                textBoxScroll();
+                Thread.Sleep(5000);
                 GetFriend();
             }
             catch (Exception ex)
@@ -265,7 +273,9 @@ namespace AutoFacebook
             {
                 Browser.GoTo(Url);
                 var PostName = Browser.Div(Find.ByClass("_6-e")).Element(Find.ByClass("_6-f"));
+                string PostNameString = "";
                 state.Text += "Now is " + PostName + "'s Post\r\n";
+                textBoxScroll();
                 StreamWriter sw1 = new StreamWriter(CurrentPath +@"\FB\post\" + PostName + ".txt");
                 StreamWriter sw2 = new StreamWriter(CurrentPath + @"\FB\Finish.txt");
                 Console.WriteLine(PostName + "'s Post" + "\r\n" + "\r\n");
@@ -275,13 +285,23 @@ namespace AutoFacebook
                 i = 0;
                 foreach (var li in liList)
                 {
+                    if (PostName.ToString().Contains("("))
+                    {
+                        int start = PostName.ToString().IndexOf("(");
+                        int end = PostName.ToString().IndexOf(")");
+                        PostNameString = PostName.ToString().Substring(0, end - start );
+                    }
+                    else
+                    {
+                        PostNameString = PostName.Text;
+                    }
                     var content = li.Span(Find.ByClass("userContent"));
                     var time = li.Div(Find.ByClass("_1_n fsm fwn fcg"));
                     var name = li.Div(Find.ByClass("_3dp _29k")).Element(Find.ByClass("_1_s"));
                     var ps = li.Span(Find.ByClass("userContentSecondary fcg"));
                     if (name.Exists && content.Exists && time.Exists)
                     {
-                        if (name.Text.TrimEnd().Equals(PostName.Text) || (name.Text.Contains(PostName.Text + "分享")))
+                        if (name.Text.TrimEnd().Equals(PostNameString) || (name.Text.Contains(PostName.Text + "分享")))
                         {
                             Console.WriteLine(name + "\r\n");
                             sw1.WriteLine(name + "\r\n");
@@ -318,6 +338,7 @@ namespace AutoFacebook
                 sw2.WriteLine(Url);
                 sw2.Close();
                 sw1.Close();
+                File.Copy(CurrentPath + @"\FB\Finish.txt", CurrentPath + @"\FB\Finish_Backup.txt", true);
                 UsersFinish.Add(Url);
                 state.Text += "He/She have" + i + "Post \r\n";
                 state.Text += "Done\r\n";
@@ -325,9 +346,20 @@ namespace AutoFacebook
             }
             catch (WatiN.Core.Exceptions.TimeoutException ex)
             {
-                state.Text += "Timeout Try Again";
+                state.Text += "Timeout, sleep 5 second and Try Again\r\n";
                 state.Text += " ---------------------------------------- \r\n";
-                Console.WriteLine("Timeout Try Again");
+                textBoxScroll();
+                Console.WriteLine("Timeout, sleep 5 second and Try Again");
+                Thread.Sleep(5000);
+                GetPost(Url);
+            }
+            catch (WatiN.Core.Exceptions.RunScriptException ex)
+            {
+                state.Text += "Some Script Wrong,  sleep 5 second and Reload website\r\n";
+                state.Text += " ---------------------------------------- \r\n";
+                textBoxScroll();
+                Console.WriteLine("Some Script Wrong, sleep 5 second and Reload website");
+                Thread.Sleep(5000);
                 GetPost(Url);
             }
             catch (Exception ex)
@@ -375,6 +407,11 @@ namespace AutoFacebook
                 {
                     GetFriend();
                 }
+                else
+                {
+                    state.Text += "Fetch Friend Done \r\n";
+                    state.Text += " ---------------------------------------- \r\n";
+                }
                 foreach (string eachFriend in Users) 
                 {
                     foreach (string show in UsersFinish)
@@ -389,6 +426,7 @@ namespace AutoFacebook
                             state.Text += "Have Repeat\r\n";
                             break;
                         }
+                        textBoxScroll();
                     }
 
                     if (CanRead)
@@ -403,6 +441,12 @@ namespace AutoFacebook
             {
                 Console.WriteLine( "Something wrong" );
             }
+        }
+
+        private void textBoxScroll()
+        {
+            state.SelectionStart = state.Text.Length;
+            state.ScrollToCaret();
         }
 
     }
