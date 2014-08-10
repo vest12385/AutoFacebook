@@ -35,6 +35,10 @@
             this.login = new System.Windows.Forms.Button();
             this.state = new System.Windows.Forms.TextBox();
             this.start = new System.Windows.Forms.Button();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.FirstName = new System.Windows.Forms.Button();
+            this.label1 = new System.Windows.Forms.Label();
+            this.listBox1 = new System.Windows.Forms.ListBox();
             this.Login_Logout.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -106,11 +110,53 @@
             this.start.UseVisualStyleBackColor = true;
             this.start.Click += new System.EventHandler(this.start_Click);
             // 
+            // textBox1
+            // 
+            this.textBox1.Font = new System.Drawing.Font("新細明體", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.textBox1.Location = new System.Drawing.Point(442, 118);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(403, 25);
+            this.textBox1.TabIndex = 8;
+            // 
+            // FirstName
+            // 
+            this.FirstName.Font = new System.Drawing.Font("新細明體", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.FirstName.Location = new System.Drawing.Point(851, 118);
+            this.FirstName.Name = "FirstName";
+            this.FirstName.Size = new System.Drawing.Size(106, 25);
+            this.FirstName.TabIndex = 9;
+            this.FirstName.Text = "優先取得";
+            this.FirstName.UseVisualStyleBackColor = true;
+            this.FirstName.Click += new System.EventHandler(this.FirstName_Click);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(457, 58);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(445, 30);
+            this.label1.TabIndex = 10;
+            this.label1.Text = "請將要優先取得PO文的網址貼在底下，按下優先取得按鈕即可加入\r\n若要刪除請選擇要刪除的項目並按下Delete。";
+            // 
+            // listBox1
+            // 
+            this.listBox1.FormattingEnabled = true;
+            this.listBox1.ItemHeight = 15;
+            this.listBox1.Location = new System.Drawing.Point(442, 149);
+            this.listBox1.Name = "listBox1";
+            this.listBox1.Size = new System.Drawing.Size(515, 349);
+            this.listBox1.TabIndex = 11;
+            this.listBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.listBox1_KeyDown);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(436, 508);
+            this.ClientSize = new System.Drawing.Size(969, 508);
+            this.Controls.Add(this.listBox1);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.FirstName);
+            this.Controls.Add(this.textBox1);
             this.Controls.Add(this.start);
             this.Controls.Add(this.state);
             this.Controls.Add(this.Login_Logout);
@@ -133,6 +179,10 @@
         private System.Windows.Forms.Button login;
         private System.Windows.Forms.TextBox state;
         private System.Windows.Forms.Button start;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Button FirstName;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.ListBox listBox1;
     }
 }
 

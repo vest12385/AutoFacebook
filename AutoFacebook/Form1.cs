@@ -25,9 +25,11 @@ namespace AutoFacebook
         private List<List<string>> UsersFriend = new List<List<string>>();
         private List<string> Post = new List<string>();
         private List<string> UsersFinish = new List<string>();
+        private List<string> First = new List<string>();
         private SQLiteConnection m_dbConnection;
         private SQLiteCommand command;
         private string CurrentPath = System.Environment.CurrentDirectory;
+        private string winDir = System.Environment.GetEnvironmentVariable("windir");
         private bool haveFriend = false;
         
         private Process _browserProcess;
@@ -266,6 +268,42 @@ namespace AutoFacebook
         }
         #endregion
 
+        #region 3.優先取得
+
+        private void FirstName_Click(object sender, EventArgs e)
+        {
+            if (textBox1.Text.Contains(@"https://www.facebook.com/") || textBox1.Text.Equals(null))
+            {
+                First.Add(textBox1.Text);
+                listBox1.Items.Clear();
+                foreach (string show in First)
+                {
+                    listBox1.Items.Add(show);
+                }
+            }
+            else
+            {
+                MessageBox.Show("格式錯誤，請輸入包含\"https://www.facebook.com/\"的網址");
+            }
+        }
+
+        private void listBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                if (e.KeyData == Keys.Delete)
+                {
+                    First.Remove(listBox1.SelectedItem.ToString());
+                    listBox1.Items.Remove(listBox1.SelectedItem.ToString());
+                }
+            }
+            catch
+            {
+
+            }
+        }
+        #endregion
+
         #region 4.貼文取得
         private void GetPost(  string Url)
         {
@@ -340,9 +378,18 @@ namespace AutoFacebook
                 sw1.Close();
                 File.Copy(CurrentPath + @"\FB\Finish.txt", CurrentPath + @"\FB\Finish_Backup.txt", true);
                 UsersFinish.Add(Url);
-                state.Text += "He/She have" + i + "Post \r\n";
-                state.Text += "Done\r\n";
-                state.Text += " ---------------------------------------- \r\n";
+                if (i < 10)
+                {
+                    state.Text += "He/She have less than ten Post \r\n";
+                    state.Text += "delete \r\n";
+                    File.Delete(CurrentPath +@"\FB\post\" + PostName + ".txt");
+                }  
+                else
+                {
+                    state.Text += "He/She have" + i + "Post \r\n";
+                    state.Text += "Done\r\n";
+                    state.Text += " ---------------------------------------- \r\n";
+                }
             }
             catch (WatiN.Core.Exceptions.TimeoutException ex)
             {
@@ -431,7 +478,18 @@ namespace AutoFacebook
 
                     if (CanRead)
                     {
-                        GetPost(eachFriend);
+                        if (First.Count > 0)
+                        {
+                            foreach (string show in First)
+                            {
+                                GetPost(show);
+                                GetPost(eachFriend);
+                            }
+                        }
+                        else
+                        {
+                            GetPost(eachFriend);
+                        }
                     }
                 }
                 state.Text += "Fetch Post Done \r\n";
@@ -448,6 +506,7 @@ namespace AutoFacebook
             state.SelectionStart = state.Text.Length;
             state.ScrollToCaret();
         }
+
 
     }
 }
