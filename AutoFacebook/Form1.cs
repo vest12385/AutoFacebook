@@ -31,6 +31,7 @@ namespace AutoFacebook
         private string CurrentPath = System.Environment.CurrentDirectory;
         private string winDir = System.Environment.GetEnvironmentVariable("windir");
         private bool haveFriend = false;
+        private bool FirstPost = false;
         
         private Process _browserProcess;
         private IE _browser;
@@ -274,6 +275,7 @@ namespace AutoFacebook
         {
             if (textBox1.Text.Contains(@"https://www.facebook.com/") || textBox1.Text.Equals(null))
             {
+                FirstPost = true;
                 First.Add(textBox1.Text);
                 listBox1.Items.Clear();
                 foreach (string show in First)
@@ -311,6 +313,14 @@ namespace AutoFacebook
             {
                 Browser.GoTo(Url);
                 var PostName = Browser.Div(Find.ByClass("_6-e")).Element(Find.ByClass("_6-f"));
+                if (!PostName.Exists)
+                {
+                    PostName = Browser.Div(Find.ByClass("_58gh _2pii")).Element(Find.ByClass("_58gi"));
+                }
+                if (!PostName.Exists)
+                {
+                    PostName = Browser.Div(Find.ByClass("_58gh _2pii")).Element(Find.ByClass("_58gi _5rqs"));
+                }
                 string PostNameString = "";
                 state.Text += "Now is " + PostName + "'s Post\r\n";
                 textBoxScroll();
@@ -319,53 +329,114 @@ namespace AutoFacebook
                 Console.WriteLine(PostName + "'s Post" + "\r\n" + "\r\n");
                 sw1.WriteLine(PostName + "'s Post" + "\r\n" + "\r\n");
                 scrollWindows();
-                var liList = Browser.ListItems.Filter(Find.ByClass("fbTimelineUnit fbTimelineTwoColumn clearfix"));
-                i = 0;
-                foreach (var li in liList)
+                if (Browser.Div(Find.ByClass("uiMorePager fbTimelineSectionExpandPager fbTimelineShowOlderSections")).Element(Find.ByClass("uiMorePagerPrimary")).Exists)
                 {
-                    if (PostName.ToString().Contains("("))
-                    {
-                        int start = PostName.ToString().IndexOf("(");
-                        int end = PostName.ToString().IndexOf(")");
-                        PostNameString = PostName.ToString().Substring(0, end - start );
-                    }
-                    else
+                    Browser.Div(Find.ByClass("uiMorePager fbTimelineSectionExpandPager fbTimelineShowOlderSections")).Element(Find.ByClass("uiMorePagerPrimary")).Click();
+                    scrollWindows();
+                }
+                var liList = Browser.ListItems.Filter(Find.ByClass("fbTimelineUnit fbTimelineTwoColumn clearfix"));
+                var liDiv = Browser.Divs.Filter(Find.ByClass("_2d10"));
+                i = 0;
+                if (liList.Count == 0)
+                {
+                    foreach (var li in liDiv)
                     {
                         PostNameString = PostName.Text;
-                    }
-                    var content = li.Span(Find.ByClass("userContent"));
-                    var time = li.Div(Find.ByClass("_1_n fsm fwn fcg"));
-                    var name = li.Div(Find.ByClass("_3dp _29k")).Element(Find.ByClass("_1_s"));
-                    var ps = li.Span(Find.ByClass("userContentSecondary fcg"));
-                    if (name.Exists && content.Exists && time.Exists)
-                    {
-                        if (name.Text.TrimEnd().Equals(PostNameString) || (name.Text.Contains(PostName.Text + "分享")))
+                        var content = li.Span(Find.ByClass("userContent"));
+                        var time = li.Div(Find.ByClass("_1_n fsm fwn fcg"));
+                        var name = li.Div(Find.ByClass("_3dp _29k")).Element(Find.ByClass("_1_s"));
+                        var ps = li.Span(Find.ByClass("userContentSecondary fcg"));
+                        if (name.Exists && content.Exists && time.Exists && content.ToString() != null)
                         {
-                            Console.WriteLine(name + "\r\n");
-                            sw1.WriteLine(name + "\r\n");
-                            Console.WriteLine(time + "\r\n");
-                            sw1.WriteLine(time + "\r\n");
-                            Console.WriteLine(content);
-                            sw1.WriteLine(content);
-                            if (ps.Exists)
+                            if (name.Text.TrimEnd().Equals(PostNameString) || (name.Text.Contains(PostName.Text + "分享")))
                             {
-                                Console.WriteLine(ps);
-                                sw1.WriteLine(ps);
+                                Console.WriteLine(name + "\r\n");
+                                sw1.WriteLine(name + "\r\n");
+                                Console.WriteLine(time + "\r\n");
+                                sw1.WriteLine(time + "\r\n");
+                                Console.WriteLine(content);
+                                sw1.WriteLine(content);
+                                if (ps.Exists)
+                                {
+                                    Console.WriteLine(ps);
+                                    sw1.WriteLine(ps);
+                                }
+                                else
+                                {
+                                    ps = null;
+                                }
+                                Console.WriteLine("-thepageisoverpleasechangenextpagetodownload-");
+                                sw1.WriteLine("-thepageisoverpleasechangenextpagetodownload-");
+                                //Users.Add(new List<string>() { Div.Text, Div.Link(Find.Any).Url });
+                                command = m_dbConnection.CreateCommand();
+                                command.CommandText = "INSERT INTO post ( name, time, content ) VALUES ( @name ,@time, @content)";
+                                command.Parameters.Add(new SQLiteParameter("@name", name.Text));
+                                command.Parameters.Add(new SQLiteParameter("@time", time.Text));
+                                command.Parameters.Add(new SQLiteParameter("@content", content.Text + ps));
+                                command.ExecuteNonQuery();
+                                i++;
                             }
-                            else
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var li in liList)
+                    {
+                        if (PostName.ToString().Contains("("))
+                        {
+                            int start = PostName.ToString().IndexOf("(");
+                            int end = PostName.ToString().IndexOf(")");
+                            PostNameString = PostName.ToString().Remove(start);
+                        }
+                        else
+                        {
+                            PostNameString = PostName.Text;
+                        }
+                        var content = li.Span(Find.ByClass("userContent"));
+                        var time = li.Div(Find.ByClass("_1_n fsm fwn fcg"));
+                        var name = li.Div(Find.ByClass("_3dp _29k")).Element(Find.ByClass("_1_s"));
+                        var ps = li.Span(Find.ByClass("userContentSecondary fcg"));
+                        if (name.Exists && content.Exists && time.Exists && content.ToString() != null)
+                        {
+                            if (name.Text.TrimEnd().Equals(PostNameString.TrimEnd()) || (name.Text.Contains(PostName.Text + "分享")))
                             {
-                                ps = null;
+                                if (content.ToString().Contains("神魔之塔"))
+                                {
+                                    Console.WriteLine(name + "\r\n");
+                                    Console.WriteLine(time + "\r\n");
+                                    Console.WriteLine(content);
+                                    Console.WriteLine("It Post Contains \"神魔之塔\", Now remove it");
+                                }
+                                else
+                                {
+                                    Console.WriteLine(name + "\r\n");
+                                    sw1.WriteLine(name + "\r\n");
+                                    Console.WriteLine(time + "\r\n");
+                                    sw1.WriteLine(time + "\r\n");
+                                    Console.WriteLine(content);
+                                    sw1.WriteLine(content);
+                                    if (ps.Exists)
+                                    {
+                                        Console.WriteLine(ps);
+                                        sw1.WriteLine(ps);
+                                    }
+                                    else
+                                    {
+                                        ps = null;
+                                    }
+                                    Console.WriteLine("-thepageisoverpleasechangenextpagetodownload-");
+                                    sw1.WriteLine("-thepageisoverpleasechangenextpagetodownload-");
+                                    //Users.Add(new List<string>() { Div.Text, Div.Link(Find.Any).Url });
+                                    command = m_dbConnection.CreateCommand();
+                                    command.CommandText = "INSERT INTO post ( name, time, content ) VALUES ( @name ,@time, @content)";
+                                    command.Parameters.Add(new SQLiteParameter("@name", name.Text));
+                                    command.Parameters.Add(new SQLiteParameter("@time", time.Text));
+                                    command.Parameters.Add(new SQLiteParameter("@content", content.Text + ps));
+                                    command.ExecuteNonQuery();
+                                    i++;
+                                }
                             }
-                            Console.WriteLine("--------------------------------------------------------------------------------");
-                            sw1.WriteLine("--------------------------------------------------------------------------------");
-                            //Users.Add(new List<string>() { Div.Text, Div.Link(Find.Any).Url });
-                            command = m_dbConnection.CreateCommand();
-                            command.CommandText = "INSERT INTO post ( name, time, content ) VALUES ( @name ,@time, @content)";
-                            command.Parameters.Add(new SQLiteParameter("@name", name.Text));
-                            command.Parameters.Add(new SQLiteParameter("@time", time.Text));
-                            command.Parameters.Add(new SQLiteParameter("@content", content.Text + ps));
-                            command.ExecuteNonQuery();
-                            i++;
                         }
                     }
                 }
@@ -382,7 +453,8 @@ namespace AutoFacebook
                 {
                     state.Text += "He/She have less than ten Post \r\n";
                     state.Text += "delete \r\n";
-                    File.Delete(CurrentPath +@"\FB\post\" + PostName + ".txt");
+                    state.Text += " ---------------------------------------- \r\n";
+                    //File.Delete(CurrentPath +@"\FB\post\" + PostName + ".txt");
                 }  
                 else
                 {
@@ -447,7 +519,6 @@ namespace AutoFacebook
         private void start_Click(object sender, EventArgs e)
         {
             bool CanRead = true;
-            
             try
             {
                 if (!haveFriend)
@@ -478,13 +549,14 @@ namespace AutoFacebook
 
                     if (CanRead)
                     {
-                        if (First.Count > 0)
+                        if (FirstPost)
                         {
                             foreach (string show in First)
                             {
                                 GetPost(show);
-                                GetPost(eachFriend);
                             }
+                            GetPost(eachFriend);
+                            FirstPost = false;
                         }
                         else
                         {
